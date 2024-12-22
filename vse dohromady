@@ -1,0 +1,60 @@
+#vse dohromady, nahraje data, ulozi, oddela nepotřebný sloupce, dá hodnotu ze začátku opčního kontraktu ke konci (pevně daný na 20 dnů - zatím) 
+
+import pandas as pd
+import yfinance as yf
+import numpy as np  # Import numpy for log function
+
+# Get the stock ticker from the user
+ticker = input("Enter the stock ticker (e.g., 'GOOG'): ")
+n_days = 20
+
+# Download historical data for the given stock ticker
+data = yf.download(ticker, start="2020-01-01", end="2024-11-30")
+
+# Define the custom path for saving the raw data
+custom_path = rf"C:\Users\m_ble\Desktop\programování\data k akciím\{ticker}.csv"
+data.to_csv(custom_path)
+
+# Load the CSV file
+file_path = rf"C:\Users\m_ble\Desktop\programování\data k akciím\{ticker}.csv"
+
+# Read the CSV, skipping the second and third rows
+data = pd.read_csv(file_path, skiprows=[1, 2])
+
+# Delete the columns I don't need (e.g., B, D, E, F, G)
+columns_to_drop = [1, 5, 6]  # B, D, E, F, G in 0-based indexing
+data = data.drop(data.columns[columns_to_drop], axis=1)
+
+# Rename column A (which is the first column) to 'Date'
+data.rename(columns={data.columns[0]: 'Date'}, inplace=True)
+
+
+# Save the adjusted data to a new file
+adjusted_path = rf"C:\Users\m_ble\Desktop\programování\data k akciím\{ticker}_adjusted.csv"
+data.to_csv(adjusted_path, index=False)
+#print(f"Adjusted CSV file for {ticker} saved successfully!")
+
+# Funkce pro přenos hodnot a uložení výsledku
+def process_excel_file(input_file, output_file):
+    # Načtení dat
+    data = pd.read_csv(input_file)
+    
+    # Přidání nového sloupce pro simulované hodnoty
+    data['Start'] = None
+
+    # Přenos hodnot z "Close" do nového sloupce
+    for i in range(len(data)):
+        # Kontrola, zda hodnota existuje a má se přenést
+        if i < len(data) - 20:
+            data.loc[i + 20, 'Start'] = data.loc[i, 'Close']
+
+    # Uložení výsledku do souboru
+    data.to_csv(output_file, index=False)
+    print(f"Soubor byl úspěšně uložen jako {output_file}")
+
+# Cesty k souborům
+input_file = rf"C:\Users\m_ble\Desktop\programování\data k akciím\{ticker}_adjusted.csv"  # Nahraďte skutečnou cestou
+output_file = rf"C:\Users\m_ble\Desktop\programování\data k akciím\{ticker}_adjusted.csv"  # Nahraďte skutečnou cestou
+
+# Spuštění funkce
+process_excel_file(input_file, output_file)
