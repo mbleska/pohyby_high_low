@@ -1,0 +1,94 @@
+#vse dohromady, "days", perct up and down
+
+import pandas as pd
+import yfinance as yf
+import numpy as np  # Import numpy for log function
+
+# Get the stock ticker from the user
+ticker = input("Enter the stock ticker (e.g., 'GOOG'): ")
+days = 20
+
+# Download historical data for the given stock ticker
+data = yf.download(ticker, start="2020-01-01", end="2024-11-30")
+
+# Define the custom path for saving the raw data
+custom_path = rf"C:\Users\m_ble\Desktop\programování\data k akciím\{ticker}.csv"
+data.to_csv(custom_path)
+
+# Load the CSV file
+file_path = rf"C:\Users\m_ble\Desktop\programování\data k akciím\{ticker}.csv"
+
+# Read the CSV, skipping the second and third rows
+data = pd.read_csv(file_path, skiprows=[1, 2])
+
+# Delete the columns I don't need (e.g., B, D, E, F, G)
+columns_to_drop = [1, 5, 6]  # B, D, E, F, G in 0-based indexing
+data = data.drop(data.columns[columns_to_drop], axis=1)
+
+# Rename column A (which is the first column) to 'Date'
+data.rename(columns={data.columns[0]: 'Date'}, inplace=True)
+
+
+# Save the adjusted data to a new file
+adjusted_path = rf"C:\Users\m_ble\Desktop\programování\data k akciím\{ticker}_adjusted.csv"
+data.to_csv(adjusted_path, index=False)
+#print(f"Adjusted CSV file for {ticker} saved successfully!")
+
+# Funkce pro přenos hodnot a uložení výsledku
+def process_excel_file(input_file, output_file):
+    # Načtení dat
+    data = pd.read_csv(input_file)
+    
+    # Přidání nového sloupce pro simulované hodnoty
+    data['Start'] = None
+    data["Max"] = None
+    data["Min"] = None
+    data["Percent Up"] = None
+    data["Percent Down"] = None
+
+    # Přenos hodnot z "Close" do nového sloupce
+    for i in range(len(data)):
+        # Kontrola, zda hodnota existuje a má se přenést
+        if i < len(data) - days:
+            data.loc[i + days - 1, 'Start'] = data.loc[i, 'Close']
+    
+    # Přenos maximálních hodnot z 20denního období
+    for i in range(len(data)):
+        # Kontrola, zda je dostatek dat pro výpočet 20denního rozpětí
+        if i + days <= len(data):
+            # Výpočet maximální hodnoty z rozpětí 20 dnů
+            max_value = data['High'].iloc[i:i + days].max()
+            data.loc[i + days - 1, 'Max'] = max_value  # Přenos na konec rozpětí
+
+    # Přenos minimálních hodnot z 20denního období
+    for i in range(len(data)):
+        # Kontrola, zda je dostatek dat pro výpočet 20denního rozpětí
+        if i + days <= len(data):
+            # Výpočet minimální hodnoty z rozpětí 20 dnů
+            min_value = data['Low'].iloc[i:i + 20].min()
+            data.loc[i + days - 1, 'Min'] = min_value  # Přenos na konec rozpětí
+
+     # Výpočet procentuálního pohybu
+    for i in range(len(data)):
+        open_price = data.loc[i, 'Start'] if 'Start' in data.columns else None
+        max_price = data.loc[i, 'Max']
+        if pd.notna(open_price) and pd.notna(max_price) and open_price > 0:
+            data.loc[i, 'Percent Up'] = round(((max_price - open_price) / open_price) * 100,2)
+
+         # Výpočet procentuálního pohybu
+    for i in range(len(data)):
+        open_price = data.loc[i, 'Start'] if 'Start' in data.columns else None
+        min_price = data.loc[i, 'Min']
+        if pd.notna(open_price) and pd.notna(min_price) and open_price > 0:
+            data.loc[i, 'Percent Down'] = round(((min_price - open_price) / open_price) * 100,2)
+
+    # Uložení výsledku do souboru
+    data.to_csv(output_file, index=False)
+    print(f"Soubor byl úspěšně uložen jako {output_file}")
+
+# Cesty k souborům
+input_file = rf"C:\Users\m_ble\Desktop\programování\data k akciím\{ticker}_adjusted.csv"  # Nahraďte skutečnou cestou
+output_file = rf"C:\Users\m_ble\Desktop\programování\data k akciím\{ticker}_adjusted.csv"  # Nahraďte skutečnou cestou
+
+# Spuštění funkce
+process_excel_file(input_file, output_file)
